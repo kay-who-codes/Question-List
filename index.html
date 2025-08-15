@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>❓ Question List</title>
+    <style>
+        :root {
+            --bg-dark: #131313;
+            --text-light: #E0E0E0;
+            --text-white: #FFFFFF;
+            --primary-accent: #fff95f;
+            --secondary-accent: #ff88c4;
+            --card-bg: #1e1e1e;
+            --border-color: #333;
+            --hover-bg: #252525;
+            --shadow: 0 4px 20px rgba(255, 249, 95, 0.1);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-light);
+            opacity: 0.8;
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4rem 1rem;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            opacity: 0.8;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid rgba(255, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            text-align: center;
+            color: #ff6b6b;
+        }
+
+        .error-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .error-details {
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+
+        .retry-button {
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            color: var(--bg-dark);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-height: 48px;
+        }
+
+        .retry-button:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .filter-section {
+            margin-bottom: 2.5rem;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+            opacity: 0;
+        }
+
+        .filter-section.loaded {
+            opacity: 1;
+        }
+
+        .filter-label {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-white);
+        }
+
+        .multiselect-container {
+            position: relative;
+            max-width: 400px;
+            margin: 0 auto 200px;
+        }
+
+        .multiselect-dropdown {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .multiselect-dropdown:hover {
+            border-color: var(--primary-accent);
+            box-shadow: var(--shadow);
+        }
+
+        .multiselect-dropdown.open {
+            border-color: var(--primary-accent);
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .selected-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            flex: 1;
+        }
+
+        .selected-item {
+            background: linear-gradient(135deg, var(--primary-accent), var(--secondary-accent));
+            color: var(--bg-dark);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .remove-item {
+            cursor: pointer;
+            font-weight: bold;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .remove-item:hover {
+            opacity: 1;
+        }
+
+        .dropdown-arrow {
+            transition: transform 0.3s ease;
+            color: var(--primary-accent);
+            font-size: 1.2rem;
+        }
+
+        .dropdown-arrow.rotated {
+            transform: rotate(180deg);
+        }
+
+        .placeholder {
+            color: var(--text-light);
+            opacity: 0.7;
+        }
+
+        .options-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            border: 2px solid var(--primary-accent);
+            border-top: none;
+            border-bottom-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: var(--transition);
+            pointer-events: none;
+        }
+
+        .options-container.open {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .option {
+            padding: 0.8rem 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            min-height: 48px;
+        }
+
+        .option:hover {
+            background: var(--hover-bg);
+        }
+
+        .option.selected {
+            background: linear-gradient(135deg, rgba(255, 249, 95, 0.1), rgba(255, 136, 196, 0.1));
+            color: var(--primary-accent);
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            position: relative;
+            transition: var(--transition);
+        }
+
+        .option.selected .checkbox {
+            background: var(--primary-accent);
+            border-color: var(--primary-accent);
+        }
+
+        .option.selected .checkbox::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--bg-dark);
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .questions-container {
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+            opacity: 0;
+        }
+
+        .questions-container.loaded {
+            opacity: 1;
+        }
+
+        .questions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .category-section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .category-section:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary-accent);
+        }
+
+        .category-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-accent);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .question-list {
+            list-style: none;
+        }
+
+        .question-item {
+            background: var(--hover-bg);
+            margin-bottom: 0.8rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--secondary-accent);
+            transition: var(--transition);
+            animation: slideInLeft 0.4s ease-out;
+        }
+
+        .question-item:hover {
+            background: #2a2a2a;
+            transform: translateX(4px);
+            border-left-color: var(--primary-accent);
+        }
+
+        .question-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .question-text {
+            font-size: 1rem;
+            color: var(--text-white);
+            line-height: 1.5;
+        }
+
+        .no-questions {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-light);
+            opacity: 0.7;
+            font-size: 1.1rem;
+        }
+
+        .question-count {
+            text-align: center;
+            margin-bottom: 1rem;
+            color: var(--text-light);
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+
+            .questions-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .multiselect-container {
+                max-width: 100%;
+            }
+
+            .selected-items {
+                gap: 0.3rem;
+            }
+
+            .selected-item {
+                font-size: 0.8rem;
+                padding: 0.25rem 0.6rem;
+            }
+
+            .category-section {
+                padding: 1rem;
+            }
+
+            .question-item {
+                padding: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 1rem 0.5rem;
+            }
+
+            .multiselect-dropdown {
+                padding: 0.8rem;
+                min-height: 50px;
+            }
+
+            .option {
+                padding: 0.6rem 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Question List</h1>
+            <p class="subtitle">Discover thought-provoking questions across different categories</p>
+        </header>
+
+        <div id="loading-container" class="loading-spinner">
+            <div class="spinner"></div>
+            <p class="loading-text">Loading questions...</p>
+        </div>
+
+        <div id="error-container" class="error-message" style="display: none;">
+            <h3 class="error-title">Unable to Load Questions</h3>
+            <p class="error-details">There was an error loading the questions file. Please make sure "questions.json" is available in the same directory.</p>
+            <button class="retry-button" onclick="location.reload()">Retry</button>
+        </div>
+
+        <section class="filter-section" id="filter-section">
+            <label class="filter-label" for="category-filter">Select Categories:</label>
+            <div class="multiselect-container">
+                <div class="multiselect-dropdown" id="multiselect-dropdown">
+                    <div class="selected-items" id="selected-items">
+                        <span class="placeholder">Choose categories...</span>
+                    </div>
+                    <span class="dropdown-arrow">▼</span>
+                </div>
+                <div class="options-container" id="options-container">
+                    <!-- Options will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <main class="questions-container" id="questions-container">
+            <div class="question-count" id="question-count"></div>
+            <div class="questions-grid" id="questions-grid">
+                <!-- Questions will be populated by JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        class QuestionExplorer {
+            constructor() {
+                this.questionsData = {};
+                this.selectedCategories = new Set();
+                this.allCategories = [];
+                this.isDropdownOpen = false;
+                this.isLoading = true;
+                
+                this.initializeElements();
+                this.loadQuestions();
+            }
+
+            initializeElements() {
+                this.loadingContainer = document.getElementById('loading-container');
+                this.errorContainer = document.getElementById('error-container');
+                this.filterSection = document.getElementById('filter-section');
+                this.questionsContainer = document.getElementById('questions-container');
+                this.dropdown = document.getElementById('multiselect-dropdown');
+                this.selectedItemsContainer = document.getElementById('selected-items');
+                this.optionsContainer = document.getElementById('options-container');
+                this.questionsGrid = document.getElementById('questions-grid');
+                this.questionCount = document.getElementById('question-count');
+                this.dropdownArrow = this.dropdown.querySelector('.dropdown-arrow');
+            }
+
+            async loadQuestions() {
+                try {
+                    const response = await fetch('questions.json');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    this.questionsData = await response.json();
+                    this.allCategories = Object.keys(this.questionsData);
+                    
+                    this.hideLoading();
+                    this.initializeApp();
+                    
+                } catch (error) {
+                    console.error('Error loading questions:', error);
+                    this.showError();
+                }
+            }
+
+            hideLoading() {
+                this.loadingContainer.style.display = 'none';
+                this.isLoading = false;
+            }
+
+            showError() {
+                this.loadingContainer.style.display = 'none';
+                this.errorContainer.style.display = 'block';
+                this.isLoading = false;
+            }
+
+            initializeApp() {
+                this.setupEventListeners();
+                this.populateOptions();
+                this.displayQuestions();
+                this.updateQuestionCount();
+                
+                // Show the app sections with animation
+                this.filterSection.classList.add('loaded');
+                this.questionsContainer.classList.add('loaded');
+            }
+
+            setupEventListeners() {
+                // Toggle dropdown
+                this.dropdown.addEventListener('click', (e) => {
+                    if (!e.target.closest('.remove-item')) {
+                        this.toggleDropdown();
+                    }
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.multiselect-container')) {
+                        this.closeDropdown();
+                    }
+                });
+
+                // Handle option selection
+                this.optionsContainer.addEventListener('click', (e) => {
+                    const option = e.target.closest('.option');
+                    if (option) {
+                        const category = option.dataset.category;
+                        this.toggleCategory(category);
+                    }
+                });
+            }
+
+            populateOptions() {
+                this.optionsContainer.innerHTML = '';
+                this.allCategories.forEach(category => {
+                    const option = document.createElement('div');
+                    option.className = 'option';
+                    option.dataset.category = category;
+                    option.innerHTML = `
+                        <div class="checkbox"></div>
+                        <span>${category}</span>
+                    `;
+                    this.optionsContainer.appendChild(option);
+                });
+            }
+
+            toggleDropdown() {
+                this.isDropdownOpen = !this.isDropdownOpen;
+                this.dropdown.classList.toggle('open', this.isDropdownOpen);
+                this.optionsContainer.classList.toggle('open', this.isDropdownOpen);
+                this.dropdownArrow.classList.toggle('rotated', this.isDropdownOpen);
+            }
+
+            closeDropdown() {
+                this.isDropdownOpen = false;
+                this.dropdown.classList.remove('open');
+                this.optionsContainer.classList.remove('open');
+                this.dropdownArrow.classList.remove('rotated');
+            }
+
+            toggleCategory(category) {
+                if (this.selectedCategories.has(category)) {
+                    this.selectedCategories.delete(category);
+                } else {
+                    this.selectedCategories.add(category);
+                }
+                this.updateSelectedItems();
+                this.updateOptions();
+                this.displayQuestions();
+                this.updateQuestionCount();
+            }
+
+            removeCategory(category) {
+                this.selectedCategories.delete(category);
+                this.updateSelectedItems();
+                this.updateOptions();
+                this.displayQuestions();
+                this.updateQuestionCount();
+            }
+
+            updateSelectedItems() {
+                this.selectedItemsContainer.innerHTML = '';
+                
+                if (this.selectedCategories.size === 0) {
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'placeholder';
+                    placeholder.textContent = 'Choose categories...';
+                    this.selectedItemsContainer.appendChild(placeholder);
+                } else {
+                    this.selectedCategories.forEach(category => {
+                        const item = document.createElement('div');
+                        item.className = 'selected-item';
+                        item.innerHTML = `
+                            <span>${category}</span>
+                            <span class="remove-item" data-category="${category}">×</span>
+                        `;
+                        
+                        item.querySelector('.remove-item').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            this.removeCategory(category);
+                        });
+                        
+                        this.selectedItemsContainer.appendChild(item);
+                    });
+                }
+            }
+
+            updateOptions() {
+                const options = this.optionsContainer.querySelectorAll('.option');
+                options.forEach(option => {
+                    const category = option.dataset.category;
+                    option.classList.toggle('selected', this.selectedCategories.has(category));
+                });
+            }
+
+            displayQuestions() {
+                this.questionsGrid.innerHTML = '';
+                
+                const categoriesToShow = this.selectedCategories.size > 0 
+                    ? Array.from(this.selectedCategories) 
+                    : this.allCategories;
+
+                if (categoriesToShow.length === 0) {
+                    const noQuestions = document.createElement('div');
+                    noQuestions.className = 'no-questions';
+                    noQuestions.textContent = 'No categories selected. Please choose categories to view questions.';
+                    this.questionsGrid.appendChild(noQuestions);
+                    return;
+                }
+
+                categoriesToShow.forEach((category, index) => {
+                    const questions = this.questionsData[category];
+                    if (!questions || questions.length === 0) return;
+
+                    const categorySection = document.createElement('section');
+                    categorySection.className = 'category-section';
+                    categorySection.style.animationDelay = `${index * 0.1}s`;
+
+                    const categoryTitle = document.createElement('h2');
+                    categoryTitle.className = 'category-title';
+                    categoryTitle.textContent = category;
+
+                    const questionList = document.createElement('ul');
+                    questionList.className = 'question-list';
+
+                    questions.forEach((question, qIndex) => {
+                        const questionItem = document.createElement('li');
+                        questionItem.className = 'question-item';
+                        questionItem.style.animationDelay = `${(index * 0.1) + (qIndex * 0.05)}s`;
+                        
+                        const questionText = document.createElement('p');
+                        questionText.className = 'question-text';
+                        questionText.textContent = question;
+                        
+                        questionItem.appendChild(questionText);
+                        questionList.appendChild(questionItem);
+                    });
+
+                    categorySection.appendChild(categoryTitle);
+                    categorySection.appendChild(questionList);
+                    this.questionsGrid.appendChild(categorySection);
+                });
+            }
+
+            updateQuestionCount() {
+                const categoriesToShow = this.selectedCategories.size > 0 
+                    ? Array.from(this.selectedCategories) 
+                    : this.allCategories;
+
+                const totalQuestions = categoriesToShow.reduce((count, category) => {
+                    return count + (this.questionsData[category]?.length || 0);
+                }, 0);
+
+                const categoryCount = categoriesToShow.length;
+                
+                this.questionCount.textContent = 
+                    `Showing ${totalQuestions} questions across ${categoryCount} ${categoryCount === 1 ? 'category' : 'categories'}`;
+            }
+        }
+
+        // Initialize the application when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new QuestionExplorer();
+        });
+    </script>
+</body>
+</html>
